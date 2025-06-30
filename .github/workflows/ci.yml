@@ -1,10 +1,10 @@
-name: task01 CI
+name: task07 CI
 
 on:
   push:
-    branches: [ task01 ]  
+    branches: [ task07 ]  
   pull_request:
-    branches: [ task01 ]
+    branches: [ task07 ]
 
 jobs:
   build-and-test:
