@@ -1,25 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
-
-namespace task13;
-
-public class Subject //добавлил public, так как иначе в 19 строке ошибка "Inconsistent accessibility: property type 'List<Subject>' is less accessible than property 'Student.Grades'"
+using System.Text.Json.Serialization;
+namespace task13
 {
-    public string Name { get; set; }
-    public int Grade { get; set; }
-}
+    public class StudentFileService
+    {
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
 
-public class Student
-{
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public DateTime BirthDate { get; set; }
-    public List<Subject> Grades { get; set; }
-}
+        public void SaveStudentToFile(Student student, string filePath)
+        {
+            string json = JsonSerializer.Serialize(student, _jsonOptions);
+            File.WriteAllText(filePath, json);
+        }
 
-public class Class1
-{
+        public Student LoadStudentFromFile(string filePath)
+        {
+            string json = File.ReadAllText(filePath);
+            var student = JsonSerializer.Deserialize<Student>(json, _jsonOptions) ?? throw new Exception("Файл содержит некорректные данные");
+            return student;
 
+        }
+    }
+
+    public class Subject(string name, int grade)
+    {
+        public string Name { get; set; } = name;
+        public int Grade { get; set; } = grade;
+    }
+
+    [method: JsonConstructor] //чтоб десериализировать
+    public class Student(string firstName, string lastName, DateTime birthDate, List<Subject> grades)
+    {
+        public string FirstName { get; set; } = firstName;
+        public string LastName { get; set; } = lastName;
+        public DateTime BirthDate { get; set; } = birthDate;
+        public List<Subject> Grades { get; set; } = grades ?? [];
+
+        public Student(string firstName, string lastName, string birthDate, List<Subject> grades) : this(firstName, lastName, DateTime.Parse(birthDate), grades) { } //из-за листа пришлось делать через this
+
+        public string Serialized()
+        {
+            return JsonSerializer.Serialize(this);
+        }
+    }
 }
