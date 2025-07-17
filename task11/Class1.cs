@@ -1,52 +1,35 @@
-﻿namespace task11;
-
-using System;
+﻿using System;
+using Microsoft.CSharp;
+using System.CodeDom.Compiler;
 using System.Reflection;
-using System.Reflection.Emit;
-
-public static class CalculatorGenerator
+namespace task11
 {
-    public static dynamic GenerateCalc()
+    public interface ICalculator
     {
-        AssemblyName assemblyName = new("CalcAss");
-        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule("DynamicCalcModule");
-        TypeBuilder typeBuilder = moduleBuilder.DefineType("DynamicCalc.Calculator", TypeAttributes.Public | TypeAttributes.Class);
-
-        GenerateMethod(typeBuilder, "Add", typeof(int), typeof(int), typeof(int));
-        GenerateMethod(typeBuilder, "Minus", typeof(int), typeof(int), typeof(int));
-        GenerateMethod(typeBuilder, "Mul", typeof(int), typeof(int), typeof(int));
-        GenerateMethod(typeBuilder, "Div", typeof(int), typeof(int), typeof(int));
-        
-        Type calculatorType = typeBuilder.CreateType();
-
-        return Activator.CreateInstance(calculatorType);
+        int Add(int a, int b);
+        int Minus(int a, int b);
+        int Mul(int a, int b);
+        int Div(int a, int b);
     }
 
-    private static void GenerateMethod(TypeBuilder typeBuilder, string methodName, Type returnType, params Type[] parameterTypes)
+    public class CalculatorGenerator
     {
-        MethodBuilder methodBuilder = typeBuilder.DefineMethod(methodName, MethodAttributes.Public, returnType, parameterTypes);
-        ILGenerator il = methodBuilder.GetILGenerator();
-
-        il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Ldarg_2);
-
-        switch (methodName)
+        public ICalculator CompileCalculator(string code)
         {
-            case "Add":
-                il.Emit(OpCodes.Add);
-                break;
-            case "Minus":
-                il.Emit(OpCodes.Sub);
-                break;
-            case "Mul":
-                il.Emit(OpCodes.Mul);
-                break;
-            case "Div":
-                il.Emit(OpCodes.Div);
-                break;
-        }
+            CSharpCodeProvider provider = new();
+            CompilerParameters compilerParams = new()
+            {
+                GenerateInMemory = true,
+                ReferencedAssemblies = { "System.dll" }
+            };
 
-        il.Emit(OpCodes.Ret);
+            compilerParams.ReferencedAssemblies.Add(Assembly.GetExecutingAssembly().Location);
+            CompilerResults results = provider.CompileAssemblyFromSource(compilerParams, code);
+
+            if (results.Errors.HasErrors) throw new Exception("Ошибка компиляции калькулятора!");
+
+            Type calculatorType = results.CompiledAssembly.GetType("Calculator");
+            return (ICalculator)Activator.CreateInstance(calculatorType);
+        }
     }
 }
